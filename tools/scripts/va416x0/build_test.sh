@@ -16,16 +16,18 @@ MODE=$1
 # Set version: default to 1 for clean, default to 2 for update
 VERSION=$([ "$MODE" = "clean" ] && echo "${2:-1}" || echo "${2:-2}")
 
-# Find JLinkExe (in PATH on Linux, /Applications/SEGGER on macOS)
+# Find J-Link executable
 if command -v JLinkExe >/dev/null 2>&1; then
-    JLINK="JLinkExe"
+    JLINK=$(command -v JLinkExe)
+elif command -v JLink.exe >/dev/null 2>&1; then
+    JLINK=$(command -v JLink.exe)
 else
-    # Check for versioned JLink directory on macOS (e.g., JLink_V812g)
-    JLINK_PATH=$(find /Applications/SEGGER -name "JLinkExe" 2>/dev/null | head -n1)
+    # macOS fallback
+    JLINK_PATH=$(find /Applications/SEGGER \( -name "JLinkExe" -o -name "JLink.exe" \) 2>/dev/null | head -n1)
     if [ -n "$JLINK_PATH" ] && [ -x "$JLINK_PATH" ]; then
         JLINK="$JLINK_PATH"
     else
-        echo "Error: JLinkExe not found. Please install SEGGER J-Link software."
+        echo "Error: J-Link executable not found. Please install SEGGER J-Link software."
         exit 1
     fi
 fi

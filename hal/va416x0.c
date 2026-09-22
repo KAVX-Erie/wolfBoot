@@ -52,19 +52,21 @@
 #endif
 #endif
 
+#include "va416xx_hal_gpio.h"
+#define OCXO_HEATER_ON()    GPIO_SET(PORTE, 10)
+
 #ifndef WOLFBOOT_UNIT_TEST_VA416X0_FRAM
 const stc_iocfg_pin_cfg_t bootDefaultConfig[] =
 {
-    {VOR_PORTB,14,en_iocfg_dir_dncare, {{.fltclk=0,.invinp=0,.iewo=0,.opendrn=0,.invout=0,.plevel=0,.pen=0,.pwoa=0,.funsel=3,.iodis=0}}}, /* UART1 TX */
-    {VOR_PORTB,15,en_iocfg_dir_dncare, {{.fltclk=0,.invinp=0,.iewo=0,.opendrn=0,.invout=0,.plevel=0,.pen=0,.pwoa=0,.funsel=3,.iodis=0}}}, /* UART1 RX */
+    {VOR_PORTD,11,en_iocfg_dir_dncare, {{.fltclk=0,.invinp=0,.iewo=0,.opendrn=0,.invout=0,.plevel=0,.pen=0,.pwoa=0,.funsel=FUNSEL3,.iodis=0}}}, // UART1 TX 
+    {VOR_PORTD,12,en_iocfg_dir_dncare, {{.fltclk=0,.invinp=0,.iewo=0,.opendrn=0,.invout=0,.plevel=0,.pen=0,.pwoa=0,.funsel=FUNSEL3,.iodis=0}}}, // URAT1 RX
 
-    {VOR_PORTG, 0,en_iocfg_dir_dncare, {{.fltclk=0,.invinp=0,.iewo=0,.opendrn=0,.invout=0,.plevel=0,.pen=0,.pwoa=0,.funsel=1,.iodis=0}}}, /* UART0 TX */
-    {VOR_PORTG, 1,en_iocfg_dir_dncare, {{.fltclk=0,.invinp=0,.iewo=0,.opendrn=0,.invout=0,.plevel=0,.pen=0,.pwoa=0,.funsel=1,.iodis=0}}}, /* UART0 RX */
-    {VOR_PORTG, 2,en_iocfg_dir_output, {{.fltclk=0,.invinp=0,.iewo=0,.opendrn=0,.invout=0,.plevel=0,.pen=0,.pwoa=0,.funsel=1,.iodis=0}}}, /* out low */
+    {VOR_PORTA, 2,en_iocfg_dir_output, {{.fltclk=0,.invinp=0,.iewo=0,.opendrn=0,.invout=0,.plevel=0,.pen=0,.pwoa=0,.funsel=FUNSEL3,.iodis=0}}}, // UART0_TX
+    {VOR_PORTA, 3,en_iocfg_dir__input, {{.fltclk=0,.invinp=0,.iewo=0,.opendrn=0,.invout=0,.plevel=0,.pen=0,.pwoa=0,.funsel=FUNSEL3,.iodis=0}}}, // UART0_RX
 
-    {VOR_PORTG, 5,en_iocfg_dir_output, {{.fltclk=0,.invinp=0,.iewo=0,.opendrn=0,.invout=0,.plevel=0,.pen=0,.pwoa=0,.funsel=0,.iodis=0}}}, /* LED DS2 */
-    {VOR_PORTF,15,en_iocfg_dir_output, {{.fltclk=0,.invinp=0,.iewo=0,.opendrn=0,.invout=0,.plevel=0,.pen=0,.pwoa=0,.funsel=0,.iodis=0}}}, /* LED DS4 */
-    {0} /* end of array - with optimizations end of array was not being properly detected*/
+    {VOR_PORTE,10,en_iocfg_dir_output, {{.fltclk=0,.invinp=0,.iewo=1,.opendrn=0,.invout=0,.plevel=0,.pen=0,.pwoa=0,.funsel=FUNSEL0,.iodis=0}}}, // OCXO_Heater
+
+    IOCFG_PINCFG_END
 };
 
 
@@ -573,18 +575,34 @@ static void ConfigEdac(uint32_t ramScrub, uint32_t romScrub)
 void hal_init(void)
 {
     hal_status_t status;
+    uint8_t errors = 0;
+
+    // #define ERROR_TEST
+    #ifdef ERROR_TEST
+    errors++;
+    #endif
+
+    /* Configure the pins */
+    status = HAL_Iocfg_Init(bootDefaultConfig);
+    if (status != hal_status_ok) {
+        /* continue anyways */
+        errors++;
+    }
+
+    /* Configure to external 100MHz clk */
+    OCXO_HEATER_ON();
+    for(volatile uint32_t i=0; i<100000; i++){__NOP();}
+    status = HAL_Clkgen_XtalN();
+    if (status != hal_status_ok) {
+        /* continue anyways */
+        errors++;
+    }
 
     /* get clock settings and update SystemCoreClock */
     SystemCoreClockUpdate();
 
 
 #ifdef __WOLFBOOT /* build for wolfBoot only */
-    /* Configure PLL to set CPU clock to 100MHz - 40MHz crystal * 2.5 */
-    status = HAL_Clkgen_PLL(CLK_CTRL0_XTAL_N_PLL2P5X);
-    if (status != hal_status_ok) {
-        /* continue anyways: no UART yet, so this cannot be reported */
-    }
-
     /* Disable Watchdog - should be already disabled out of reset */
     VOR_WATCH_DOG->WDOGLOCK    = WATCHDOG_UNLOCK_KEY;
     VOR_WATCH_DOG->WDOGCONTROL = 0x0;
@@ -601,13 +619,9 @@ void hal_init(void)
     status = HAL_Init();
     if (status != hal_status_ok) {
         /* continue anyways: no UART yet, so this cannot be reported */
+        errors++;
     }
 
-    /* Configure the pins */
-    status = HAL_Iocfg_SetupPins(bootDefaultConfig);
-    if (status != hal_status_ok) {
-        /* continue anyways: no UART yet, so this cannot be reported */
-    }
 
 #ifdef DEBUG_UART
     uart_init();
@@ -619,13 +633,23 @@ void hal_init(void)
     /* Init the FRAM SPI device */
     status = FRAM_Init(ROM_SPI_BANK, ROM_SPI_CSN);
     if (status != hal_status_ok) {
-        wolfBoot_printf("FRAM_Init failed: status %d\n", status);
-        /* Continue: the image checks fail closed if FRAM is unreadable */
+    #ifdef DEBUG
+        wolfBoot_printf("FRAM_Init failed\n");
+    #endif
+        /* continue anyways */
+        errors++;
     }
 
 #ifdef TEST_EXT_FLASH
     test_ext_flash();
 #endif
+
+    /* check errors */
+    if(errors > 0){
+    #ifdef DEBUG_UART
+        wolfBoot_printf("Init Errors: %d\n", errors);
+    #endif
+    }
 }
 
 void hal_prepare_boot(void)
@@ -641,7 +665,7 @@ void hal_prepare_boot(void)
 
 #ifdef WOLFBOOT_RESTORE_CLOCK
     /* Restore clock to heart-beat oscillator */
-    (void)HAL_Clkgen_Init(CLK_CFG_HBO);
+    (void)HAL_Clkgen_HBO();
     SystemCoreClockUpdate();
 #endif
 
