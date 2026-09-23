@@ -24,7 +24,7 @@
 #define WOLFBOOT_HAL_VA416X0_H
 
 #include <stdint.h>
-#include <stdbool.h>
+#include <stdbool.h>  
 
 
 /* HAL Configuration  */
@@ -37,8 +37,12 @@
 #define ADC_VREF_MV      (3300ul)   /* units: millivolts */
 
 /** SysTick setup */
+#ifndef SYSTICK_INTERVAL_MS
 #define SYSTICK_INTERVAL_MS (1u)    /* Interval in milliseconds between SysTick interrupts */
+#endif
+#ifndef SYSTICK_INTERVAL_MS
 #define SYSTICK_PRIORITY    (7u)
+#endif
 
 /* remove I2C interrupts from build if not using */
 #define __HAL_DISABLE_I2C0_MASTER
@@ -59,10 +63,10 @@
 
 /* Board specific configuration */
 #ifndef XTAL
-#define XTAL            (10000000UL)      /* 10 MHz xtal */
+#define XTAL            (100000000UL)      /* 100 MHz xtal */
 #endif
 #ifndef EXTCLK
-#define EXTCLK          (40000000UL)      /* EVK ext clk 40M */
+#define EXTCLK          (100000000UL)      /* EVK ext clk 100M */
 #endif
 #ifndef HBO
 #define HBO             (18500000UL)      /* Internal clock */

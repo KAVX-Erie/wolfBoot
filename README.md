@@ -1,3 +1,9 @@
+## wolfBoot fork
+Fork of [wolfBoot](https://github.com/wolfSSL/wolfBoot). Changes:
+ - Added new default config at root: [default_va416x0.config](default_va416x0.config).
+ - Added custom HBO function that I added to Vorago SDK clkgen HAL. This saves ~4Kb when switching back to HBO at end of wolfBoot
+ - Enable and use OCXO clk in [va416x0.c](hal\va416x0.c) and [va416x0.h](hal\va416x0.h)
+
 # wolfBoot
 
 wolfSSL Secure Bootloader ([Home page](https://www.wolfssl.com/products/wolfboot/), [Manual](https://www.wolfssl.com/documentation/manuals/wolfboot/), [wolfBoot-examples](https://github.com/wolfSSL/wolfBoot-examples))

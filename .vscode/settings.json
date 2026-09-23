@@ -1,0 +1,23 @@
+{
+    "terminal.integrated.profiles.windows": {
+        "UCRT64": {
+            "path": "C:\\msys64\\usr\\bin\\bash.exe",
+            "args": [
+                "--login",
+                "-i"
+            ],
+            "env": {
+                "MSYSTEM": "UCRT64",
+                "CHERE_INVOKING": "1",
+                "MSYS2_PATH_TYPE": "inherit"
+            },
+            "icon": "terminal-bash"
+        }
+    },
+
+    "terminal.integrated.defaultProfile.windows": "UCRT64",
+    "cmake.configureOnOpen": false,
+    "C_Cpp.default.compilerPath": "C:/Program Files (x86)/Arm GNU Toolchain arm-none-eabi/14.3 rel1/bin",
+    "C_Cpp.default.configurationProvider":"ms-vscode.makefile-tools",
+    "makefile.makefilePath": "Makefile"
+}

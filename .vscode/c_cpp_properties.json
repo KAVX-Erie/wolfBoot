@@ -1,0 +1,17 @@
+{
+    "configurations": [
+        {
+            "name": "UCRT64",
+            "compilerPath": "C:/msys64/ucrt64/bin/gcc.exe",
+            "includePath": [
+                "${workspaceFolder}/**",
+                "${workspaceFolder}/../Caracal/VA416xx_SDK/common/**"
+            ],
+            "defines": [],
+            "cStandard": "c11",
+            "intelliSenseMode": "windows-gcc-x64",
+            "configurationProvider": "ms-vscode.makefile-tools"
+        }
+    ],
+    "version": 4
+}
